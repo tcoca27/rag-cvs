@@ -1,0 +1,6 @@
+fastapi==0.104.1
+uvicorn==0.23.2
+RAGatouille==0.0.4b0
+pypdf==3.17.0
+python-dotenv==1.0.0
+python-multipart

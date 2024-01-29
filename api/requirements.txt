@@ -4,3 +4,5 @@ RAGatouille==0.0.4b0
 pypdf==3.17.0
 python-dotenv==1.0.0
 python-multipart
+PyGithub
+llama_hub

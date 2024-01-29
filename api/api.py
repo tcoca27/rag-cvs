@@ -4,7 +4,7 @@ from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
 import os
 
-from index import index_data, DATA_FOLDER, is_index, files_status
+from index import index_data, DATA_FOLDER, is_index, files_status, search_githubs
 from retriever import naive_retrieval, reranked_retrieval
 
 chat_router = router = APIRouter()
@@ -73,3 +73,8 @@ def return_reranked_matches(resume_query: ResumeQuery):
             "error": "You don't have any indexed files. Upload some and press the index button."
         }
 
+@router.get('/resumes')
+def return_resume_analysis():
+    users = search_githubs()
+    print(users)
+    return users

@@ -16,6 +16,7 @@ const ResumeMatcher = () => {
     const [toIndex, setToIndex] = useState([]);
     const [isLoading, setLoading] = useState(true);
     const [modalDescription, setModalDescription] = useState("");
+    const [githubs, setGithubs] = useState([]);
 
     useEffect(() => {
         getFilesStatus();
@@ -92,6 +93,19 @@ const ResumeMatcher = () => {
         }
     }
 
+    const getGitProfiles = async () => {
+        setModalDescription("Retrieving & summarizing profiles");
+        setIsModalOpen(true)
+        const response = await fetch('http://127.0.0.1:8000/api/resume/resumes', {
+            method: 'GET'
+        });
+        if (response.ok) {
+            const body = await response.json();
+            setGithubs(body);
+            setIsModalOpen(false);
+        }
+    }
+
     return (
         <div className="flex flex-col gap-8 w-[75%]">
             {
@@ -147,7 +161,8 @@ const ResumeMatcher = () => {
             <div className='flex justify-between'>
                 <Button color='primary' onClick={() => retrieve('simple')}>Simple Matching</Button>
                 <Button color='primary' onClick={() => retrieve('reranked')}>Reranked Matching</Button>
-                <Button color='primary' isDisabled>LLM Matching</Button>
+                <Button color='primary' onClick={() => getGitProfiles()}>Github Profiles</Button>
+                {/*<Button color='primary' isDisabled>LLM Matching</Button>*/}
             </div>
             {resumes.length > 0 &&
                 <>
@@ -156,8 +171,35 @@ const ResumeMatcher = () => {
                         <Accordion selectionMode="multiple">
                             {
                                 resumes.map((resume, index) =>
-                                    <AccordionItem key={index} aria-label={resume.file_name} title={resume.file_name}>
-                                        {resume.content}
+                                    <AccordionItem key={index} aria-label={resume.file_name} title={<p className='text-blue-600'>{resume.file_name}</p>}>
+                                        <p className='whitespace-pre-line'>{resume.content}</p>
+                                    </AccordionItem>
+                                )
+                            }
+                        </Accordion>
+                    </div>
+                </>
+            }
+            {githubs.length > 0 &&
+                <>
+                    <p className='text-lg font-semibold mt-4'>Github Profiles</p>
+                    <div className='border-solid border-2 rounded-md border-gray-300 mt-1 p-2'>
+                        <Accordion selectionMode="multiple">
+                            {
+                                githubs.map((profile, index) =>
+                                    <AccordionItem key={index} aria-label={profile.username}
+                                                   title={<a target='_blank' className='text-blue-600'
+                                                             href={`https://github.com/${profile.username}`}>{profile.username}</a>}>
+                                        <div className='flex flex-col gap-4 px-4'>
+                                            <p className='text-lg font-semibold'>Summarized Projects</p>
+                                            {
+                                                profile.descriptions.map((desc: string, index: number) =>
+                                                    <p className='whitespace-pre-line' key={index}><b>{index + 1}: </b>{desc} </p>)
+                                            }
+                                            <p className='text-lg font-semibold'>Analysis</p>
+                                            <p className='pb-4 whitespace-pre-line'>{profile.analysis}</p>
+                                            {/*<p className='pb-4'><b>Filename:</b> {profile.file_name}</p>*/}
+                                        </div>
                                     </AccordionItem>
                                 )
                             }

@@ -49,14 +49,14 @@ def index_exists():
     return {"exists": is_index()}
 
 
-@router.post('/naive')
+@router.post('/simple')
 def return_naive_matches(resume_query: ResumeQuery):
     try:
         response = naive_retrieval(resume_query.job_description, resume_query.top_k)
         return {
             "hits": response
         }
-    except:
+    except Exception as e:
         return {
             "error": "You don't have any indexed files. Upload some and press the index button."
         }
@@ -76,5 +76,4 @@ def return_reranked_matches(resume_query: ResumeQuery):
 @router.get('/resumes')
 def return_resume_analysis():
     users = search_githubs()
-    print(users)
     return users

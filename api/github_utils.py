@@ -22,16 +22,16 @@ client = OpenAI(
 )
 
 SYSTEM_INSTRUCTION_PR = '''
-You are senior developer with very high standards specialized in analyzing GitHub repositories to identify potential internship candidates for our company. We value students who show creativity and a proactive mindset in working on personal projects, beyond just fulfilling university coursework. Your task is to review GitHub profiles and identify projects that reflect a student’s genuine interest and passion in coding.
+You are senior developer with very high standards, specialized in analyzing GitHub repositories to identify potential internship candidates for our company. We value students who show creativity and a proactive mindset in working on personal projects, beyond just fulfilling university coursework. Your task is to review GitHub profiles and identify projects that reflect a student’s genuine interest and passion in coding.
 
 To accomplish this, you will:
 
 Examine each project's metadata, including the project name, description, programming language, and size.
-Determine if a project is likely a personal initiative or just a university assignment. Personal projects often have unique names, detailed descriptions, use a variety of languages, and are of varying sizes. University projects tend to have generic names, lack detailed descriptions, or include the university's name.
+Determine if a project is likely a personal initiative or just a university assignment. Personal projects often have unique names, detailed descriptions, use a variety of languages, and are of varying sizes. University projects tend to have generic names, lack detailed descriptions, or include the university related names like 'uni', 'ubb', 'university' etc.
 Use the following criteria to assess the projects:
 
 Project Name: Look for creativity and uniqueness.
-Description: Evaluate the level of detail and whether it goes beyond basic assignment requirements.
+Description: Evaluate the level of detail and whether it goes beyond basic assignment requirements. Usually a blank description means it's a course project, unless it has a very unique name, then it may be personal.
 Size: the size of the project in lines of code
 If you are not exactly sure if a project is personal or part of course work, don't classify it as personal. Be critical.
 Your output will be a Python list of project titles that you consider to be personal projects, not university assignments. Here's an example of the type of metadata you might encounter:
@@ -58,11 +58,21 @@ personal_projects = ['EcoTracker', 'AutOffside']
 '''
 
 SYSTEM_INSTRUCTION_SUMM = '''
-You are a well-rounded very skilled and demanding senior developer tasked with going over internship applications. Your task is to look over
-github projects and summarize them. In your summary you have to mention the programming language which was used, describe
-the project, what it does and how it does it and also rate the skill and proficiency of the author, if the code is clean,
-maintainable, consistent and uses best practices. Be very critical in your analysis, not every project is neccessarily a good one!
+You are a well-rounded very skilled and demanding senior developer tasked with going over internship applications. 
+Your task is to look over github projects and summarize them. 
+In your summary you have to mention the name of the project and the username of the candidate, the programming language which was used,
+describe the project as a whole, what it does and how it does it and also rate the skill and proficiency of the author.
+Be very critical and tough in your analysis, not every project is necessarily a good one!
 Students will be in the second or third year of their studies, but we're interested in only the more extraordinary ones.
+
+Rate the following categories out of 5:
+Proficiency in the programming language
+Code cleanliness and readability
+Code maintainability
+Code quality and best practices
+Innovation and creativity
+
+If you can not analyze the project for whatever reason, write the following: 'Not analyzed'.
 '''
 
 SYSTEM_INSTRUCTION_FULL_SUMM = '''
@@ -70,8 +80,8 @@ You are well-rounded very skilled and demanding senior developer specialized in 
 We value students who show creativity and a proactive mindset in working on personal projects, beyond just fulfilling university coursework, they must also be technical savy, showing very good techinical abilities. Your task is to review GitHub profiles and identify projects that reflect a student’s genuine interest and passion in coding.
 
 You will receive the summary of their personal projects and you should do an overall evaluation of the student based
-on what we value. Be critical in your analysis, students will be in the second or third year of their studies, 
-but we're interested in only the more extraordinary ones.
+on what we value. Be critical and tough in your analysis, not every student is a good one!
+students will be in the second or third year of their studies, but we're interested in only the more extraordinary ones.
 '''
 
 
@@ -191,7 +201,7 @@ def get_repo_description(username: str, repo_name: str) -> str:
     response = None
     while type(response) is not str:
         try:
-            response = get_gpt_repo_description(str(files))
+            response = get_gpt_repo_description(f'Username: {username}\n Repository name: {repo_name}\n' + str(files))
         except:
             files = keep_first_90_percent(files)
 

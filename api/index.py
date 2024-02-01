@@ -17,7 +17,7 @@ from github_utils import get_personal_repos, get_repo_description, get_gpt_analy
 
 service_context = ServiceContext.from_defaults(chunk_size=1024, embed_model="local:BAAI/bge-small-en-v1.5", llm=None)
 
-DATA_FOLDER = './github_data'
+DATA_FOLDER = './data2'
 PERSIST_DIR = './storage_small'
 PERSIST_GIT = './storage_git/users.json'
 
@@ -30,13 +30,14 @@ def files_status():
     file_names = []
     if os.path.exists(DATA_FOLDER) and len(os.listdir(DATA_FOLDER)) > 0:
         file_names = os.listdir(DATA_FOLDER)
+    file_names.remove('.DS_Store')
     to_index = []
     if is_index():
         storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
         index = load_index_from_storage(storage_context, service_context=service_context)
         for file in file_names:
             path = os.path.join(DATA_FOLDER, file)
-            if index.docstore.get_ref_doc_info(path[path.index('/') + 1:]) == None:
+            if index.docstore.get_ref_doc_info(path[path.index('/') + 1:]) == None and index.docstore.get_ref_doc_info(path[path.index('/') + 1:] + '_part_0') == None:
                 to_index.append(file)
     file_names = list(filter(lambda file: file not in to_index, file_names))
     return file_names, to_index
@@ -66,6 +67,11 @@ def save_json(dictionary):
         outfile.write(json_object)
 
 
+def get_prev_user(prev_users, username):
+    for user in prev_users:
+        if user['username'] == username:
+            return user
+
 def search_githubs():
     prev_users = None
     try:
@@ -74,33 +80,47 @@ def search_githubs():
     except:
         pass
     documents = SimpleDirectoryReader(DATA_FOLDER, filename_as_id=True).load_data()
-    users = {}
+    prev_usernames = map(lambda user: user['username'], prev_users) if prev_users is not None else []
+    users = []
+    current_usernames = []
     for doc in documents:
         text = doc.get_text()
-        match = re.search(r'github\.com/([^/]+)/?', text)
-        print(match)
+        match = re.search(r'github\.com/([^/\s]+)', text)
         if match:
             username = match.group(1)
-            if prev_users is not None and username in prev_users.keys():
-                users[username] = prev_users[username]
+            current_usernames.append(username)
+            if username in prev_usernames:
+                users.append(get_prev_user(prev_users, username))
             else:
-                users[username] = {}
-                personal_repos = get_personal_repos(username)
-                print(f'Username: {username} Personal Repos: {personal_repos}')
-                if len(personal_repos):
-                    descriptions = []
-                    for pr in personal_repos:
-                        descriptions.append(get_repo_description(username, pr))
-                    users[username]['descriptions'] = descriptions
-                    full_analysis = get_gpt_analysis(descriptions.__str__())
-                    users[username]['analysis'] = full_analysis
-                    users[username]['file_name'] = doc.get_doc_id()
-    if prev_users is not None:
-        for username_key in prev_users.keys():
-            if username_key not in users:
-                users[username_key] = prev_users[username_key]
+                users.append(get_user_object(username))
+    if prev_users is not None and len(prev_users) > 0:
+        for user in prev_users:
+            if user['username'] not in current_usernames:
+                users.append(user)
     save_json(users)
     return users
+
+
+def get_user_object(username):
+    personal_repos = get_personal_repos(username)
+    print(f'Username: {username} Personal Repos: {personal_repos}')
+    if len(personal_repos):
+        descriptions = []
+        for pr in personal_repos:
+            description = get_repo_description(username, pr)
+            if 'not analyzed' in description.lower():
+                print(f'Repo could not be analyzed: {pr}')
+                continue
+            descriptions.append(get_repo_description(username, pr))
+            print(f'Analyzed repo {pr}')
+        full_analysis = get_gpt_analysis(descriptions.__str__())
+        return {
+            'username': username,
+            'descriptions': descriptions,
+            'analysis': full_analysis,
+            'file_name': None
+        }
+    
 
 def get_index(top_k=3):
     if not os.path.exists(PERSIST_DIR) or len(os.listdir(PERSIST_DIR)) == 0:
